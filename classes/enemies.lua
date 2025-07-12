@@ -19,7 +19,7 @@ enemies.hrKaren = {
     maxHp = 25,
     skills = {
         skills.enemySkills["Paper Cut"],
-        skills.enemySkills["Office Gossip"]
+        skills.enemySkills["Office Gossip"],
     }
 }
 
@@ -30,7 +30,21 @@ enemies.micromanageDragon = {
     skills = {
         skills.enemySkills["Paper Cut"],
         skills.enemySkills["Late Report"],
-        skills.enemySkills["Office Gossip"]
+        skills.enemySkills["Office Gossip"],
+        skills.enemySkills["Stock Buyback"],
+    }
+}
+
+enemies.ceoOfChaos = {
+    name = "CEO of Chaos",
+    hp = 60,
+    maxHp = 60,
+    skills = {
+        skills.enemySkills["Paper Cut"],
+        skills.enemySkills["Late Report"],
+        skills.enemySkills["Office Gossip"],
+        skills.enemySkills["Gaslighting"],
+        skills.enemySkills["Stock Buyback"],
     }
 }
 
