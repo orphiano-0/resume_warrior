@@ -13,12 +13,12 @@ local states = {
     battle = battleScene
 }
 
-function gameState:load()
-    states[current]:load()
+function gameState:load(...)
+    states[current]:load(...)
 
     if current == "resume" then
         states["resume"].onComplete = function(playerData)
-            self.playerData = playerData -- Save player data for future scenes
+            self.playerData = playerData
             self:switch("map")
         end
     end
@@ -48,10 +48,12 @@ function gameState:mousepressed(x, y, button)
     end
 end
 
-function gameState:switch(newState)
+-- ✅ Allows passing enemy keys or any custom arguments
+function gameState:switch(newState, ...)
     if states[newState] then
         current = newState
-        states[current]:load()
+        states[current]:load(...)
+
         if newState == "resume" then
             states["resume"].onComplete = function(playerData)
                 self.playerData = playerData

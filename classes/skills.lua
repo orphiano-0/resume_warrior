@@ -84,10 +84,30 @@ skills.enemySkills = {
             return "slams you with a Late Report! You're overworked!"
         end
     },
-
+    ["Gaslighting"] = {
+        name = "Gaslighting",
+        type = "status",
+        effect = "selfdoubt",
+        damage = 3,
+        duration = 2,
+        action = function(user, target)
+            target.statusEffects.selfdoubt = 2
+            return "blames you for being ineffective! You're being gaslighted!"
+        end
+    },
+    ["Stock Buyback"] = {
+        name = "Stock Buyback",
+        type = "heal",
+        amount = 5,
+        action = function(user)
+            local healed = math.min(user.maxHp - user.hp, 5)
+            user.hp = math.min(user.hp + 5, user.maxHp)
+            return "initiates a Stock Buyback and heals " .. healed .. " HP!"
+        end
+    }
 }
 
--- Damage calculation
+-- Damage calculator (used for buffs)
 function skills.calculateDamage(user, base)
     return base + (user.buffs and user.buffs.damageBoost or 0)
 end
