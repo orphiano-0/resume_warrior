@@ -50,6 +50,94 @@ skills.playerSkills = {
             user.buffs.turnsRemaining = 2
             return "used LinkedIn Flex! +2 damage for 2 turns!"
         end
+    },
+    ["PowerPoint Punch"] = {
+        name = "PowerPoint Punch",
+        type = "attack",
+        power = 8,
+        cooldown = 3,
+        currentCooldown = 0,
+        action = function(user, target)
+            local dmg = skills.calculateDamage(user, 8)
+            target.hp = target.hp - dmg
+            return "used PowerPoint Punch for " .. dmg .. " damage!"
+        end
+    },
+    ["All-Nighter"] = {
+        name = "All-Nighter",
+        type = "status",
+        effect = "burnout",
+        cooldown = 3,
+        currentCooldown = 0,
+        action = function(user, target)
+            target.statusEffects.burnout = 1
+            target.hp = target.hp - 2
+            return "pulled an All-Nighter! Target is burned out and takes 2 damage!"
+        end
+    },
+    ["Mindfulness"] = {
+        name = "Mindfulness",
+        type = "heal",
+        amount = 10,
+        cooldown = 3,
+        currentCooldown = 0,
+        action = function(user)
+            user.hp = math.min(user.hp + 10, user.maxHp)
+            return "practiced Mindfulness and healed 10 HP!"
+        end
+    },
+    ["Buzzword Barrage+"] = {
+        name = "Buzzword Barrage+",
+        type = "multi",
+        power = 4,
+        hits = 3,
+        cooldown = 2,
+        currentCooldown = 0,
+        action = function(user, target)
+            local total = skills.calculateDamage(user, 4) * 3
+            target.hp = target.hp - total
+            return "unleashed Buzzword Barrage+! 3 hits for " .. total .. " damage!"
+        end
+    },
+    ["Executive Focus"] = {
+        name = "Executive Focus",
+        type = "buff",
+        duration = 3,
+        cooldown = 4,
+        currentCooldown = 0,
+        action = function(user)
+            user.buffs.damageBoost = 1
+            user.buffs.turnsRemaining = 3
+            user.statusEffects.overworked = 0
+            return "entered Executive Focus! +1 damage and cured overwork!"
+        end
+    },
+    ["Corporate Clutch"] = {
+        name = "Corporate Clutch",
+        type = "ultimate",
+        cooldown = 5,
+        currentCooldown = 0,
+        action = function(user, target)
+            local effects = {
+                function()
+                    local dmg = skills.calculateDamage(user, 10)
+                    target.hp = target.hp - dmg
+                    return "landed a surprise deal for " .. dmg .. " damage!"
+                end,
+                function()
+                    local healed = math.min(user.maxHp - user.hp, 8)
+                    user.hp = user.hp + healed
+                    return "closed a company wellness week! Healed " .. healed .. " HP!"
+                end,
+                function()
+                    user.buffs.damageBoost = 3
+                    user.buffs.turnsRemaining = 2
+                    return "presented at TEDx! +3 damage boost!"
+                end
+            }
+            local chosen = effects[math.random(#effects)]
+            return "used Corporate Clutch: " .. chosen()
+        end
     }
 }
 
@@ -101,7 +189,7 @@ skills.enemySkills = {
         amount = 5,
         action = function(user)
             local healed = math.min(user.maxHp - user.hp, 5)
-            user.hp = math.min(user.hp + 5, user.maxHp)
+            user.hp = user.hp + healed
             return "initiates a Stock Buyback and heals " .. healed .. " HP!"
         end
     }
