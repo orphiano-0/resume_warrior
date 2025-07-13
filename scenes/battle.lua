@@ -13,6 +13,7 @@ function battle:load(enemyQueue)
     self.currentEnemyIndex = 1
     self.battleOver = false
     self.victoryAcknowledged = false
+    self.playerDefeated = false
     self.postBattleTimer = 0
     self.stageCleared = false
 
@@ -22,8 +23,8 @@ function battle:load(enemyQueue)
 
     local defaultPlayer = {
         name = "You",
-        hp = 40,
-        maxHp = 40,
+        hp = 50,
+        maxHp = 50,
         level = 1,
         xp = 0,
         xpToNext = 3,
@@ -98,7 +99,7 @@ function battle:loadEnemy()
             name = "Unknown Enemy",
             hp = 20,
             maxHp = 20,
-            skills = { skills.playerSkills["Excel Slam"] } -- Fallback skill
+            skills = { skills.playerSkills["Excel Slam"] }
         }
     else
         self.enemy = {
@@ -109,7 +110,6 @@ function battle:loadEnemy()
         }
     end
 
-    -- Validate skills
     if not self.enemy.skills or #self.enemy.skills == 0 then
         print("⚠️ Warning: Enemy " .. tostring(name) .. " has no valid skills, assigning fallback")
         self.enemy.skills = { skills.playerSkills["Excel Slam"] }
@@ -130,6 +130,31 @@ function battle:loadEnemy()
     self.turn = "player"
     self.message = "Battle started against " .. (self.enemy.name or "Unknown Enemy") .. "!"
     print("🧠 Enemy HP:", self.enemy.hp, "Max HP:", self.enemy.maxHp)
+end
+
+function battle:resetGame()
+    print("🧠 Resetting game due to player defeat")
+    gameState.playerData = {
+        name = "You",
+        hp = 40,
+        maxHp = 40,
+        level = 1,
+        xp = 0,
+        xpToNext = 3,
+        selectedSkill = 1,
+        buffs = { damageBoost = 0, turnsRemaining = 0 },
+        statusEffects = { burnout = 0, overworked = 0, selfdoubt = 0 },
+        skills = {
+            skills.playerSkills["Excel Slam"],
+            skills.playerSkills["Buzzword Barrage"],
+            skills.playerSkills["Coffee Break"],
+            skills.playerSkills["LinkedIn Flex"]
+        },
+        stats = nil,
+        career = nil
+    }
+    gameState.currentStage = 1
+    gameState:switch("menu")
 end
 
 function battle:update(dt)
@@ -195,7 +220,7 @@ function battle:draw()
         love.graphics.rectangle("fill", skillX - 10, skillY, skillW, #self.player.skills * 25 + 60)
         love.graphics.setColor(1, 1, 1)
         love.graphics.rectangle("line", skillX - 10, skillY, skillW, #self.player.skills * 25 + 60)
-        love.graphics.printf("↑/↓ to select, [Enter] to use", skillX, skillY + 10, skillW - 20, "left")
+        love.graphics.printf("↑/↓ to select, [Enter] to use", skillX, skillY + 10, w / 2 - 90, "left")
 
         for i, skill in ipairs(self.player.skills) do
             local y = skillY + 30 + i * 25
@@ -211,8 +236,9 @@ function battle:draw()
         end
     elseif self.battleOver then
         love.graphics.setColor(1, 1, 1)
-        local text = self.stageCleared and "Stage cleared! Press [Enter] to return to map" or
-            "Press [Enter] to face the next enemy"
+        local text = self.playerDefeated and "Game Over! Press [Enter] to restart" or
+            (self.stageCleared and "Stage cleared! Press [Enter] to return to map" or
+                "Press [Enter] to face the next enemy")
         love.graphics.printf(text, w / 2, h - 50, w / 2 - 40, "center")
     end
 
@@ -226,7 +252,9 @@ end
 function battle:keypressed(key)
     if self.battleOver then
         if key == "return" and self.victoryAcknowledged then
-            if self.stageCleared then
+            if self.playerDefeated then
+                self:resetGame()
+            elseif self.stageCleared then
                 print("🧠 Stage cleared, returning to map")
                 gameState:switch("map")
             elseif self.currentEnemyIndex < #self.enemyQueue then
@@ -272,7 +300,9 @@ function battle:keypressed(key)
                 healSound:play()
             end
 
-            if skill.cooldown then skill.currentCooldown = skill.cooldown end
+            if skill.cooldown then
+                skill.currentCooldown = skill.cooldown
+            end
             if self.enemy.hp <= 0 then
                 self:winBattle()
             else
@@ -297,11 +327,23 @@ function battle:checkPlayerStatusEffects()
         status.overworked = status.overworked - 1
         self.player.hp = self.player.hp - 2
         self.message = "You're overworked! -2 HP!"
+        if self.player.hp <= 0 then
+            self.message = "You were defeated due to overwork!"
+            self.battleOver = true
+            self.playerDefeated = true
+            return true
+        end
     end
     if status.selfdoubt > 0 then
         status.selfdoubt = status.selfdoubt - 1
         self.player.hp = self.player.hp - 2
         self.message = "Self-doubt hurts! -2 HP!"
+        if self.player.hp <= 0 then
+            self.message = "You were defeated by self-doubt!"
+            self.battleOver = true
+            self.playerDefeated = true
+            return true
+        end
         self.turn = "enemy"
         self:enemyTurn()
         return true
@@ -340,6 +382,7 @@ function battle:enemyTurn()
     if self.player.hp <= 0 then
         self.message = "You were defeated by " .. (self.enemy.name or "Unknown Enemy") .. "!"
         self.battleOver = true
+        self.playerDefeated = true
         return
     end
 
@@ -369,7 +412,9 @@ function battle:drawHealthBar(x, y, width, height, current, max, color)
     current = tonumber(current) or 0
     max = tonumber(max) or 1
     local ratio = math.max(current / max, 0)
-    if ratio > 1 then ratio = 1 end
+    if ratio > 1 then
+        ratio = 1
+    end
     love.graphics.setColor(0.2, 0.2, 0.2)
     love.graphics.rectangle("fill", x, y, width, height)
     love.graphics.setColor(color)
@@ -384,6 +429,7 @@ function battle:winBattle()
     self.player.xp = self.player.xp + 5
     self.battleOver = true
     self.victoryAcknowledged = false
+    self.playerDefeated = false
 
     if self.player.xp >= self.player.xpToNext then
         self.player.level = self.player.level + 1
@@ -399,6 +445,7 @@ function battle:winBattle()
     end
 
     self.player.statusEffects = self.player.statusEffects or { burnout = 0, overworked = 0, selfdoubt = 0 }
+    -- self.player.hp = math.min(self.player.hp + 5, self.player.maxHp) -- Optional healing
     gameState.playerData = self.player
 
     if self.currentEnemyIndex < #self.enemyQueue then
@@ -412,7 +459,9 @@ function battle:unlockSkillsByLevel(level)
     local s = require("classes.skills")
     local ps = s.playerSkills
     local owned = {}
-    for _, skill in ipairs(self.player.skills) do owned[skill.name] = true end
+    for _, skill in ipairs(self.player.skills) do
+        owned[skill.name] = true
+    end
 
     local function addSkill(name)
         if not owned[name] then
