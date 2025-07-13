@@ -1,20 +1,5 @@
 local gameState = require("gameState")
 
--- Redirect print to a file
-local originalPrint = print
-function print(...)
-    local file = io.open("console.log", "a") -- Append mode
-    if file then
-        local args = { ... }
-        for i, v in ipairs(args) do
-            args[i] = tostring(v)
-        end
-        file:write(table.concat(args, "\t") .. "\n")
-        file:close()
-    end
-    originalPrint(...) -- Still print to terminal if available
-end
-
 function love.load()
     print("🧠 Game started, logging to console.log")
     gameState:load()

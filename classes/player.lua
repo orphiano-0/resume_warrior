@@ -10,7 +10,9 @@ function Player.create(career, stats)
             stress = 0
         },
         totalPoints = 10,
-        career = career or "Undecided"
+        career = career or "Undecided",
+        currency = 100,
+        gear = {}
     }
     setmetatable(obj, Player)
     Player.__index = Player

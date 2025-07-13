@@ -1,6 +1,7 @@
 local gameState = {}
 
 local menu = require("scenes.menu")
+local shopScene = require("scenes.shop")
 local resumeCreation = require("scenes.resume_creation")
 local mapScene = require("scenes.map")
 
@@ -10,7 +11,8 @@ local states = {
     menu = menu,
     resume = resumeCreation,
     map = mapScene,
-    battle = nil
+    battle = nil,
+    shop = shopScene
 }
 
 function gameState:load(...)
