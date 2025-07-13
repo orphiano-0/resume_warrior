@@ -10,12 +10,13 @@ function resume:load()
     self.selected = 1
     self.careers = { "Tech Bro", "Marketing Diva", "Freelance Wizard" }
     self.statsList = { "experience", "intelligence", "charisma" }
+    self.titleImage = love.graphics.newImage("assets/images/background/lobby.png")
 end
 
 function resume:draw()
     local w, h = love.graphics.getWidth(), love.graphics.getHeight()
     love.graphics.setFont(self.font)
-    love.graphics.setColor(1, 1, 1)
+    love.graphics.draw(self.titleImage, 0, 0, 0, w / self.titleImage:getWidth(), h / self.titleImage:getHeight())
     love.graphics.printf("Create Your Resume", 0, 50, w, "center")
     love.graphics.printf("Career: " .. self.career, 0, 100, w, "center")
     love.graphics.printf("Points remaining: " .. self.points, 0, 150, w, "center")
