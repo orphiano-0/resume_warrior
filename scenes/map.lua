@@ -1,17 +1,17 @@
 local map = {}
 
-function map:load()
+function map:load(stage)
+    self.stage = stage or 1
     self.selected = 1
-    self.stage = 1 -- Current stage
     self.stages = {
-        [1] = { "internSwarm" },
+        [1] = { "internSwarm", "hrKaren" },
         [2] = { "micromanageDragon" },
         [3] = { "deadlineDemon" },
-        [4] = { "overtimeOgre" },
+        [4] = { "overtimeOgre", "micromanageDragon" },
         [5] = { "selfdoubtSpecter" },
         [6] = { "gaslightGhoul" },
         [7] = { "hrReaper" },
-        [8] = { "ceoOfDoom" }
+        [8] = { "ceoOfDoom", "ceoOfChaos" }
     }
 
     self.options = {
@@ -19,13 +19,14 @@ function map:load()
         { label = "🍕 Event: Awkward Team Lunch", type = "event" },
         { label = "🛍️ Shop: LinkedIn Perks", type = "shop" }
     }
+    print("🧠 Map loaded, current stage:", self.stage)
 end
 
 function map:update(dt) end
 
 function map:draw()
     love.graphics.printf("🏢 Career Map", 0, 40, love.graphics.getWidth(), "center")
-    love.graphics.printf("Choose your next move!", 0, 80, love.graphics.getWidth(), "center")
+    love.graphics.printf("Choose your next move! (Stage " .. self.stage .. ")", 0, 80, love.graphics.getWidth(), "center")
 
     for i, option in ipairs(self.options) do
         local y = 120 + i * 30
@@ -51,25 +52,25 @@ function map:keypressed(key)
     elseif key == "return" then
         local choice = self.options[self.selected]
         local gameState = require("gameState")
-        local battle = require("scenes.battle")
 
         if choice.type == "battle" then
-            -- Check if there are stages left to play
             if self.stages[self.stage] then
                 local enemyList = self.stages[self.stage]
-                local enemyKey = enemyList[1]
-                if enemyKey then
-                    gameState:switch("battle", enemyKey)
-                    print("Loading enemy key:", enemyKey)
+                if enemyList and #enemyList > 0 then
+                    print("🧠 Starting battle for stage " ..
+                    self.stage .. " with enemies: " .. table.concat(enemyList, ", "))
+                    gameState:switch("battle", enemyList)
                     self.stage = self.stage + 1
+                    gameState.currentStage = self.stage
+                    print("🧠 Incremented stage to:", self.stage)
                 else
-                    print("❌ Error: No enemy key defined for stage:", self.stage)
+                    print("❌ Error: No enemies defined for stage:", self.stage)
                 end
             else
-                -- All stages completed; restart game
                 print("🎉 All stages completed! Restarting game.")
-                self.stage = 1 -- Reset to first stage
-                self:load()    -- Reload map state
+                self.stage = 1
+                gameState.currentStage = 1
+                self:load(self.stage)
             end
         elseif choice.type == "event" then
             print("📅 Event feature coming soon.")

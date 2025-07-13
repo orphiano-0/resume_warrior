@@ -3,24 +3,58 @@ local gameState = {}
 local menu = require("scenes.menu")
 local resumeCreation = require("scenes.resume_creation")
 local mapScene = require("scenes.map")
-local battleScene = require("scenes.battle")
 
 local current = "menu"
 local states = {
     menu = menu,
     resume = resumeCreation,
     map = mapScene,
-    battle = battleScene
+    battle = nil
 }
 
 function gameState:load(...)
-    states[current]:load(...)
+    if not self.currentStage then
+        self.currentStage = 1
+    end
+    print("🧠 gameState:load, currentStage:", self.currentStage, "scene:", current)
+    if not states.battle then
+        states.battle = require("scenes.battle")
+    end
+    if current == "map" then
+        states[current]:load(self.currentStage)
+    else
+        states[current]:load(...)
+    end
 
     if current == "resume" then
         states["resume"].onComplete = function(playerData)
             self.playerData = playerData
             self:switch("map")
         end
+    end
+end
+
+function gameState:switch(newState, ...)
+    if states[newState] or newState == "battle" then
+        if newState == "battle" and not states.battle then
+            states.battle = require("scenes.battle")
+        end
+        current = newState
+        if newState == "map" then
+            states[current]:load(self.currentStage)
+        else
+            states[current]:load(...)
+        end
+
+        if newState == "resume" then
+            states["resume"].onComplete = function(playerData)
+                self.playerData = playerData
+                self:switch("map")
+            end
+        end
+        print("🧠 gameState:switch to", newState, "currentStage:", self.currentStage)
+    else
+        print("❌ Error: Attempted to switch to invalid state:", newState)
     end
 end
 
@@ -45,21 +79,6 @@ end
 function gameState:mousepressed(x, y, button)
     if states[current].mousepressed then
         states[current]:mousepressed(x, y, button)
-    end
-end
-
--- ✅ Allows passing enemy keys or any custom arguments
-function gameState:switch(newState, ...)
-    if states[newState] then
-        current = newState
-        states[current]:load(...)
-
-        if newState == "resume" then
-            states["resume"].onComplete = function(playerData)
-                self.playerData = playerData
-                self:switch("map")
-            end
-        end
     end
 end
 

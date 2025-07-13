@@ -1,22 +1,26 @@
 local skills = require("classes.skills")
 local enemies = require("classes.enemies")
+local gameState = require("gameState")
 local battle = {}
 
 local attackSound = love.audio.newSource("assets/sounds/attack.mp3", "static")
 local healSound = love.audio.newSource("assets/sounds/heal.mp3", "static")
 
 function battle:load(enemyQueue)
+    print("🧠 Loading battle with enemyQueue:", table.concat(enemyQueue or {}, ", "), "Stage:",
+        gameState.currentStage or "unknown")
     self.enemyQueue = type(enemyQueue) == "table" and enemyQueue or { enemyQueue }
     self.currentEnemyIndex = 1
     self.battleOver = false
     self.victoryAcknowledged = false
     self.postBattleTimer = 0
+    self.stageCleared = false
 
     self.bg = love.graphics.newImage("assets/images/background/bright_background.png")
     self.playerImage = love.graphics.newImage("assets/images/characters/player_1.png")
     self.pixelFont = love.graphics.newFont("assets/fonts/pixel.ttf", 12)
 
-    self.player = {
+    local defaultPlayer = {
         name = "You",
         hp = 40,
         maxHp = 40,
@@ -34,27 +38,88 @@ function battle:load(enemyQueue)
         }
     }
 
+    self.player = gameState.playerData or {}
+    for k, v in pairs(defaultPlayer) do
+        if self.player[k] == nil then
+            self.player[k] = v
+        end
+    end
+
+    self.player.statusEffects = self.player.statusEffects or { burnout = 0, overworked = 0, selfdoubt = 0 }
+
+    if self.player.stats then
+        local stats = self.player.stats
+        self.player.hp = self.player.hp or (stats.experience * 5 + stats.intelligence * 2 + 20)
+        self.player.maxHp = self.player.maxHp or self.player.hp
+        self.player.name = self.player.career or self.player.name or "You"
+        if not self.player.skills or #self.player.skills == 0 then
+            local career = self.player.career or "Tech Bro"
+            if career == "Tech Bro" then
+                self.player.skills = {
+                    skills.playerSkills["Excel Slam"],
+                    skills.playerSkills["Buzzword Barrage"],
+                    skills.playerSkills["Coffee Break"]
+                }
+            elseif career == "Marketing Diva" then
+                self.player.skills = {
+                    skills.playerSkills["Buzzword Barrage"],
+                    skills.playerSkills["LinkedIn Flex"],
+                    skills.playerSkills["Coffee Break"]
+                }
+            elseif career == "Freelance Wizard" then
+                self.player.skills = {
+                    skills.playerSkills["Excel Slam"],
+                    skills.playerSkills["Coffee Break"],
+                    skills.playerSkills["LinkedIn Flex"]
+                }
+            end
+        end
+    end
+
+    self.player.hp = tonumber(self.player.hp) or 40
+    self.player.maxHp = tonumber(self.player.maxHp) or 40
+    self.player.level = tonumber(self.player.level) or 1
+    self.player.xp = tonumber(self.player.xp) or 0
+    self.player.xpToNext = tonumber(self.player.xpToNext) or 3
+    self.player.selectedSkill = tonumber(self.player.selectedSkill) or 1
+
     self.floatingText = {}
     self:loadEnemy()
 end
 
 function battle:loadEnemy()
     local name = self.enemyQueue[self.currentEnemyIndex]
-
-    -- Debug output to help trace the issue
-    print("🧠 Trying to load enemy with key:", name)
-    for k, _ in pairs(enemies) do
-        print("🔑 Available enemy:", k)
-    end
+    print("🧠 Loading enemy:", name, "Index:", self.currentEnemyIndex, "Stage:", gameState.currentStage or "unknown")
 
     self.enemy = enemies[name]
-    assert(self.enemy, "❌ Error: Enemy not found for key: " .. tostring(name))
+    if not self.enemy then
+        print("❌ Error: Enemy not found for key: " .. tostring(name))
+        self.enemy = {
+            name = "Unknown Enemy",
+            hp = 20,
+            maxHp = 20,
+            skills = { skills.playerSkills["Excel Slam"] } -- Fallback skill
+        }
+    else
+        self.enemy = {
+            name = self.enemy.name,
+            hp = self.enemy.maxHp,
+            maxHp = self.enemy.maxHp,
+            skills = self.enemy.skills
+        }
+    end
 
-    self.enemy.hp = self.enemy.maxHp
-    self.enemyName = name
+    -- Validate skills
+    if not self.enemy.skills or #self.enemy.skills == 0 then
+        print("⚠️ Warning: Enemy " .. tostring(name) .. " has no valid skills, assigning fallback")
+        self.enemy.skills = { skills.playerSkills["Excel Slam"] }
+    end
 
-    -- Load image safely
-    local imagePath = "assets/images/characters/" .. name .. ".png"
+    self.enemy.hp = tonumber(self.enemy.hp) or self.enemy.maxHp or 20
+    self.enemy.maxHp = tonumber(self.enemy.maxHp) or 20
+    self.enemyName = tostring(name)
+
+    local imagePath = "assets/images/characters/" .. string.lower(tostring(name)) .. ".png"
     if love.filesystem.getInfo(imagePath) then
         self.enemyImage = love.graphics.newImage(imagePath)
     else
@@ -63,7 +128,8 @@ function battle:loadEnemy()
     end
 
     self.turn = "player"
-    self.message = "Battle started against " .. self.enemy.name .. "!"
+    self.message = "Battle started against " .. (self.enemy.name or "Unknown Enemy") .. "!"
+    print("🧠 Enemy HP:", self.enemy.hp, "Max HP:", self.enemy.maxHp)
 end
 
 function battle:update(dt)
@@ -81,7 +147,9 @@ end
 
 function battle:draw()
     local w, h = love.graphics.getWidth(), love.graphics.getHeight()
-    love.graphics.setColor(1, 1, 1)
+    if self.postBattleTimer > 0 then
+        love.graphics.setColor(1, 1, 1, math.max(0, self.postBattleTimer / 2))
+    end
     love.graphics.draw(self.bg, 0, 0, 0, w / self.bg:getWidth(), h / self.bg:getHeight())
     love.graphics.setFont(self.pixelFont)
 
@@ -96,7 +164,6 @@ function battle:draw()
     self:drawHealthBar(enemyX, enemyY - 16, self.enemyImage:getWidth() * scale, 10, self.enemy.hp, self.enemy.maxHp,
         { 0.8, 0.1, 0.1 })
 
-    -- Message Box
     local dialogX, dialogY, dialogW = 15, 15, w / 2 - 30
     local _, wrappedText = love.graphics.getFont():getWrap(self.message, dialogW - 20)
     local dialogH = 50 + #wrappedText * love.graphics.getFont():getHeight()
@@ -104,10 +171,10 @@ function battle:draw()
     love.graphics.rectangle("fill", dialogX, dialogY, dialogW, dialogH)
     love.graphics.setColor(1, 1, 1)
     love.graphics.rectangle("line", dialogX, dialogY, dialogW, dialogH)
-    love.graphics.printf("Battle: " .. self.enemy.name, dialogX + 10, dialogY + 10, dialogW - 20, "left")
+    love.graphics.printf("Battle: " .. (self.enemy.name or "Unknown Enemy"), dialogX + 10, dialogY + 10, dialogW - 20,
+        "left")
     love.graphics.printf(self.message, dialogX + 10, dialogY + 30, dialogW - 20, "left")
 
-    -- Player Stats
     local statsY = dialogY + dialogH + 10
     love.graphics.setColor(0, 0, 0, 0.6)
     love.graphics.rectangle("fill", dialogX, statsY, dialogW, 60)
@@ -120,7 +187,6 @@ function battle:draw()
         self.player.hp .. "/" .. self.player.maxHp .. "   XP: " .. self.player.xp .. "/" .. self.player.xpToNext,
         dialogX + 10, statsY + 30, dialogW - 20, "left")
 
-    -- Skills
     if not self.battleOver and self.turn == "player" then
         local skillX = w / 2 + 50
         local skillY = h - 200
@@ -145,8 +211,8 @@ function battle:draw()
         end
     elseif self.battleOver then
         love.graphics.setColor(1, 1, 1)
-        local text = self.currentEnemyIndex > #self.enemyQueue and "Press [Enter] to return to map" or
-            "Press [Enter] to continue"
+        local text = self.stageCleared and "Stage cleared! Press [Enter] to return to map" or
+            "Press [Enter] to face the next enemy"
         love.graphics.printf(text, w / 2, h - 50, w / 2 - 40, "center")
     end
 
@@ -160,13 +226,19 @@ end
 function battle:keypressed(key)
     if self.battleOver then
         if key == "return" and self.victoryAcknowledged then
-            if self.currentEnemyIndex < #self.enemyQueue then
+            if self.stageCleared then
+                print("🧠 Stage cleared, returning to map")
+                gameState:switch("map")
+            elseif self.currentEnemyIndex < #self.enemyQueue then
+                print("🧠 Loading next enemy in queue:", self.enemyQueue[self.currentEnemyIndex + 1])
                 self.currentEnemyIndex = self.currentEnemyIndex + 1
                 self.battleOver = false
                 self.victoryAcknowledged = false
                 self:loadEnemy()
             else
-                require("gameState"):switch("map")
+                print("🧠 All enemies in stage defeated, setting stageCleared")
+                self.stageCleared = true
+                self.postBattleTimer = 2
             end
         elseif key == "return" then
             self.victoryAcknowledged = true
@@ -212,6 +284,7 @@ function battle:keypressed(key)
 end
 
 function battle:checkPlayerStatusEffects()
+    self.player.statusEffects = self.player.statusEffects or { burnout = 0, overworked = 0, selfdoubt = 0 }
     local status = self.player.statusEffects
     if status.burnout > 0 then
         status.burnout = status.burnout - 1
@@ -237,12 +310,26 @@ function battle:checkPlayerStatusEffects()
 end
 
 function battle:enemyTurn()
+    if not self.enemy.skills or #self.enemy.skills == 0 then
+        print("❌ Error: No valid skills for enemy " .. (self.enemy.name or "Unknown Enemy"))
+        self.message = (self.enemy.name or "Unknown Enemy") .. " does nothing!"
+        self.turn = "player"
+        return
+    end
+
     local skill = self.enemy.skills[math.random(#self.enemy.skills)]
+    if not skill then
+        print("❌ Error: Selected nil skill for enemy " .. (self.enemy.name or "Unknown Enemy"))
+        self.message = (self.enemy.name or "Unknown Enemy") .. " does nothing!"
+        self.turn = "player"
+        return
+    end
+
     local hpBefore = self.player.hp
     local result = skill.action(self.enemy, self.player)
     local damage = math.max(hpBefore - self.player.hp, 0)
 
-    self.message = self.enemy.name .. " " .. result
+    self.message = (self.enemy.name or "Unknown Enemy") .. " " .. result
 
     if damage > 0 then
         attackSound:play()
@@ -251,7 +338,7 @@ function battle:enemyTurn()
     end
 
     if self.player.hp <= 0 then
-        self.message = "You were defeated by " .. self.enemy.name .. "!"
+        self.message = "You were defeated by " .. (self.enemy.name or "Unknown Enemy") .. "!"
         self.battleOver = true
         return
     end
@@ -279,7 +366,10 @@ function battle:updateBuffs()
 end
 
 function battle:drawHealthBar(x, y, width, height, current, max, color)
+    current = tonumber(current) or 0
+    max = tonumber(max) or 1
     local ratio = math.max(current / max, 0)
+    if ratio > 1 then ratio = 1 end
     love.graphics.setColor(0.2, 0.2, 0.2)
     love.graphics.rectangle("fill", x, y, width, height)
     love.graphics.setColor(color)
@@ -290,7 +380,7 @@ end
 
 function battle:winBattle()
     self.enemy.hp = 0
-    self.message = "You defeated " .. self.enemy.name .. "! +5 XP"
+    self.message = "You defeated " .. (self.enemy.name or "Unknown Enemy") .. "! +5 XP"
     self.player.xp = self.player.xp + 5
     self.battleOver = true
     self.victoryAcknowledged = false
@@ -307,6 +397,15 @@ function battle:winBattle()
             self.message = self.message .. "\nUnlocked: " .. newSkill
         end
     end
+
+    self.player.statusEffects = self.player.statusEffects or { burnout = 0, overworked = 0, selfdoubt = 0 }
+    gameState.playerData = self.player
+
+    if self.currentEnemyIndex < #self.enemyQueue then
+        self.message = self.message .. "\nGet ready for the next enemy!"
+    else
+        self.message = self.message .. "\nStage cleared!"
+    end
 end
 
 function battle:unlockSkillsByLevel(level)
@@ -317,8 +416,11 @@ function battle:unlockSkillsByLevel(level)
 
     local function addSkill(name)
         if not owned[name] then
-            table.insert(self.player.skills, ps[name])
-            return name
+            local skill = ps[name]
+            if skill then
+                table.insert(self.player.skills, skill)
+                return name
+            end
         end
     end
 
@@ -331,8 +433,11 @@ function battle:unlockSkillsByLevel(level)
     elseif level == 5 then
         for i, s in ipairs(self.player.skills) do
             if s.name == "Buzzword Barrage" then
-                self.player.skills[i] = ps["Buzzword Barrage+"]
-                return "Buzzword Barrage+"
+                local upgraded = ps["Buzzword Barrage+"]
+                if upgraded then
+                    self.player.skills[i] = upgraded
+                    return "Buzzword Barrage+"
+                end
             end
         end
     elseif level == 6 then
