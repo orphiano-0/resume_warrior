@@ -1,11 +1,9 @@
 local gameState = require("gameState")
 
-
 function love.load()
     love.graphics.setDefaultFilter("nearest", "nearest")
     defaultFont = love.graphics.newFont(14)
     love.graphics.setFont(defaultFont)
-    local gameState = require("gameState")
     gameState:load()
 end
 
