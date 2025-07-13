@@ -1,18 +1,22 @@
 local menu = {}
-
-local gameState -- to be set later
+local gameState -- Declare but don't assign at the top
 
 function menu:load()
-    gameState = require("gameState")
+    print("🧠 Loading menu scene")
+    self.font = love.graphics.newFont("assets/fonts/pixel.ttf", 12)
 end
 
 function menu:draw()
-    love.graphics.printf("📄 Resume Warrior: Career Mode", 0, 100, love.graphics.getWidth(), "center")
-    love.graphics.printf("Press [Enter] to Build Your Resume", 0, 200, love.graphics.getWidth(), "center")
+    local w, h = love.graphics.getWidth(), love.graphics.getHeight()
+    love.graphics.setFont(self.font)
+    love.graphics.setColor(1, 1, 1)
+    love.graphics.printf("Welcome to the Game!\nPress [Enter] to create your resume", 0, h / 2 - 20, w, "center")
 end
 
 function menu:keypressed(key)
     if key == "return" then
+        print("🧠 Menu: Switching to resume")
+        if not gameState then gameState = require("gameState") end -- Lazy require
         gameState:switch("resume")
     end
 end

@@ -1,20 +1,19 @@
 local Player = {}
 
-function Player:new()
+function Player.create(career, stats)
     local obj = {
         name = "Unnamed",
-        stats = {
+        stats = stats or {
             intelligence = 0,
             communication = 0,
             experience = 0,
             stress = 0
         },
         totalPoints = 10,
-        career = "Undecided"
-
+        career = career or "Undecided"
     }
-    setmetatable(obj, self)
-    self.__index = self
+    setmetatable(obj, Player)
+    Player.__index = Player
     return obj
 end
 

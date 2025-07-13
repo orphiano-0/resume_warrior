@@ -1,82 +1,61 @@
 local map = {}
+local gameState
 
 function map:load(stage)
     self.stage = stage or 1
-    self.selected = 1
-    self.stages = {
-        [1] = { "internSwarm", "hrKaren" },
-        [2] = { "micromanageDragon" },
-        [3] = { "deadlineDemon" },
-        [4] = { "overtimeOgre", "micromanageDragon" },
-        [5] = { "selfdoubtSpecter" },
-        [6] = { "gaslightGhoul" },
-        [7] = { "hrReaper" },
-        [8] = { "ceoOfDoom", "ceoOfChaos" }
-    }
-
-    self.options = {
-        { label = "📊 Start Next Career Challenge", type = "battle" },
-        { label = "🍕 Event: Awkward Team Lunch", type = "event" },
-        { label = "🛍️ Shop: LinkedIn Perks", type = "shop" }
-    }
     print("🧠 Map loaded, current stage:", self.stage)
+    self.bg = love.graphics.newImage("assets/images/background/bright_background.png")
+    self.font = love.graphics.newFont("assets/fonts/pixel.ttf", 12)
 end
 
-function map:update(dt) end
-
 function map:draw()
-    love.graphics.printf("🏢 Career Map", 0, 40, love.graphics.getWidth(), "center")
-    love.graphics.printf("Choose your next move! (Stage " .. self.stage .. ")", 0, 80, love.graphics.getWidth(), "center")
-
-    for i, option in ipairs(self.options) do
-        local y = 120 + i * 30
-        local prefix = (i == self.selected) and "➤ " or "   "
-        love.graphics.printf(prefix .. option.label, 0, y, love.graphics.getWidth(), "center")
-    end
-
-    if not self.stages[self.stage] then
-        love.graphics.printf("🎉 You've completed all career battles! Press [Enter] to restart.", 0, 280,
-            love.graphics.getWidth(), "center")
-    end
-
-    love.graphics.printf("↑/↓ to navigate, Enter to select", 0, 320, love.graphics.getWidth(), "center")
+    local w, h = love.graphics.getWidth(), love.graphics.getHeight()
+    love.graphics.draw(self.bg, 0, 0, 0, w / self.bg:getWidth(), h / self.bg:getHeight())
+    love.graphics.setFont(self.font)
+    love.graphics.setColor(1, 1, 1)
+    love.graphics.printf("Stage " .. self.stage, 0, 50, w, "center")
+    love.graphics.printf("Press [Enter] to Start Next Career Challenge", 0, h - 50, w, "center")
 end
 
 function map:keypressed(key)
-    if key == "up" then
-        self.selected = self.selected - 1
-        if self.selected < 1 then self.selected = #self.options end
-    elseif key == "down" then
-        self.selected = self.selected + 1
-        if self.selected > #self.options then self.selected = 1 end
-    elseif key == "return" then
-        local choice = self.options[self.selected]
-        local gameState = require("gameState")
-
-        if choice.type == "battle" then
-            if self.stages[self.stage] then
-                local enemyList = self.stages[self.stage]
-                if enemyList and #enemyList > 0 then
-                    print("🧠 Starting battle for stage " ..
-                    self.stage .. " with enemies: " .. table.concat(enemyList, ", "))
-                    gameState:switch("battle", enemyList)
-                    self.stage = self.stage + 1
-                    gameState.currentStage = self.stage
-                    print("🧠 Incremented stage to:", self.stage)
-                else
-                    print("❌ Error: No enemies defined for stage:", self.stage)
-                end
+    if key == "return" then
+        -- Lazy require with error handling
+        if not gameState then
+            local ok, gs = pcall(require, "gameState")
+            if ok then
+                gameState = gs
             else
-                print("🎉 All stages completed! Restarting game.")
-                self.stage = 1
-                gameState.currentStage = 1
-                self:load(self.stage)
+                print("❌ Failed to require gameState:", gs)
+                return
             end
-        elseif choice.type == "event" then
-            print("📅 Event feature coming soon.")
-        elseif choice.type == "shop" then
-            print("🛍️ Shop feature coming soon.")
         end
+
+        local enemyList
+        if self.stage == 1 then
+            enemyList = { "internSwarm", "hrKaren" }
+        elseif self.stage == 2 then
+            enemyList = { "micromanageDragon" }
+        elseif self.stage == 3 then
+            enemyList = { "deadlineDemon" }
+        elseif self.stage == 4 then
+            enemyList = { "overtimeOgre" }
+        elseif self.stage == 5 then
+            enemyList = { "selfdoubtSpecter" }
+        elseif self.stage == 6 then
+            enemyList = { "gaslightGhoul" }
+        elseif self.stage == 7 then
+            enemyList = { "hrReaper" }
+        elseif self.stage == 8 then
+            enemyList = { "ceoOfDoom" }
+        elseif self.stage == 9 then
+            enemyList = { "ceoOfChaos" }
+        else
+            enemyList = { "internSwarm" }
+        end
+
+        print("🧠 Starting battle for stage", self.stage, "with enemies:", table.concat(enemyList, ", "))
+        gameState.currentStage = self.stage + 1
+        gameState:switch("battle", enemyList)
     end
 end
 
