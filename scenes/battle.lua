@@ -1,6 +1,8 @@
 local skills = require("classes.skills")
+local dialogueBox = require("classes.dialoguebox")
 local enemies = require("classes.enemies")
 local gameState = require("gameState")
+
 local battle = {}
 
 local attackSound = love.audio.newSource("assets/sounds/attack.mp3", "static")
@@ -371,12 +373,23 @@ function battle:enemyTurn()
     local result = skill.action(self.enemy, self.player)
     local damage = math.max(hpBefore - self.player.hp, 0)
 
-    self.message = (self.enemy.name or "Unknown Enemy") .. " " .. result
+    -- Get enemy dialogue line from dialogueBox
+    local skillName = skill.name
+    local lines = dialogueBox.enemyDialogue[skillName]
+    if lines and #lines > 0 then
+        self.message = lines[math.random(#lines)]
+    else
+        self.message = (self.enemy.name or "Unknown Enemy") .. " " .. result
+    end
 
     if damage > 0 then
         attackSound:play()
-        table.insert(self.floatingText,
-            { text = "-" .. damage, x = 80, y = love.graphics.getHeight() - 160, timer = 1.2 })
+        table.insert(self.floatingText, {
+            text = "-" .. damage,
+            x = 80,
+            y = love.graphics.getHeight() - 160,
+            timer = 1.2
+        })
     end
 
     if self.player.hp <= 0 then
