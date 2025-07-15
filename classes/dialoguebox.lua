@@ -1,6 +1,5 @@
 local dialogueBox = {}
 
--- Dialogue lines by skill name (shared by all enemies)
 dialogueBox.enemyDialogue = {
     ["Paperwork Pile"] = {
         "A tidal wave of forms crashes toward you!",
@@ -16,14 +15,14 @@ dialogueBox.enemyDialogue = {
     },
     ["Overtime"] = {
         "No weekends for you! It's overtime again!",
-        "You’re roped into another late-night grind!"
+        "You're roped into another late-night grind!"
     },
     ["Coffee Sabotage"] = {
         "They tamper with your caffeine source!",
         "That wasn't your usual brew… was it?"
     },
     ["Team Reorg"] = {
-        "You’re reassigned mid-project without notice!",
+        "You're reassigned mid-project without notice!",
         "Another reorg? You lose your momentum!"
     },
     ["Corporate Rant"] = {

@@ -17,15 +17,30 @@ function resume:draw()
     local w, h = love.graphics.getWidth(), love.graphics.getHeight()
     love.graphics.setFont(self.font)
     love.graphics.draw(self.titleImage, 0, 0, 0, w / self.titleImage:getWidth(), h / self.titleImage:getHeight())
-    love.graphics.printf("Create Your Resume", 0, 50, w, "center")
-    love.graphics.printf("Career: " .. self.career, 0, 100, w, "center")
-    love.graphics.printf("Points remaining: " .. self.points, 0, 150, w, "center")
+
+    local function drawPixelatedBox(text, y)
+        local padding = 10
+        local boxWidth = self.font:getWidth(text) + padding * 2
+        local boxHeight = self.font:getHeight() + padding
+        local x = (w - boxWidth) / 2
+        love.graphics.setColor(0, 0, 0, 0.7)
+        love.graphics.rectangle("fill", x, y - padding / 2, boxWidth, boxHeight, 4, 4)
+        love.graphics.setColor(1, 1, 1)
+        love.graphics.printf(text, 0, y, w, "center")
+    end
+
+    drawPixelatedBox("Create Your Resume", 50)
+    drawPixelatedBox("Career: " .. self.career, 100)
+    drawPixelatedBox("Points remaining: " .. self.points, 130)
+
     for i, stat in ipairs(self.statsList) do
         local value = self.stats[stat]
         local prefix = (i == self.selected) and "> " or "  "
-        love.graphics.printf(prefix .. stat .. ": " .. value, 0, 150 + i * 20, w, "center")
+        local text = prefix .. stat .. ": " .. value
+        drawPixelatedBox(text, 160 + i * 25)
     end
-    love.graphics.printf("Use ↑/↓ to select, ←/→ to adjust stats, [Enter] to confirm", 0, h - 50, w, "center")
+
+    drawPixelatedBox("Use ↑/↓ to select, ←/→ to adjust stats, [Enter] to confirm", h - 50)
 end
 
 function resume:keypressed(key)
@@ -46,8 +61,7 @@ function resume:keypressed(key)
             self.points = self.points - 1
         end
     elseif key == "return" and self.points == 0 then
-        print("🧠 Resume: Creating player with career", self.career, "stats", self.stats.experience,
-            self.stats.intelligence, self.stats.charisma)
+        print("🧠 Resume: Creating player with career", self.career)
         local playerData = player.create(self.career, self.stats)
         if self.onComplete then
             self.onComplete(playerData)
@@ -56,7 +70,7 @@ function resume:keypressed(key)
 end
 
 function resume:mousepressed(x, y, button)
-    local w, h = love.graphics.getWidth(), love.graphics.getHeight()
+    local w = love.graphics.getWidth()
     if y > 100 and y < 130 then
         for i, career in ipairs(self.careers) do
             local width = self.font:getWidth(career)
