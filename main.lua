@@ -2,6 +2,14 @@ local gameState = require("gameState")
 
 function love.load()
     print("🧠 Game started, logging to console.log")
+
+    love.window.setTitle("Resume Warrior: Career Mode")
+
+    local icon = love.image.newImageData("assets/images/logo/logo.png")
+    love.window.setIcon(icon)
+
+    love.graphics.setFont(love.graphics.newFont("assets/fonts/pixel.ttf", 12))
+
     gameState:load()
 end
 
