@@ -146,7 +146,7 @@ skills.enemySkills = {
         type = "status",
         action = function(attacker, target)
             target.statusEffects = target.statusEffects or { burnout = 0, overworked = 0, selfdoubt = 0 }
-            target.statusEffects.burnout = 2
+            target.statusEffects.burnout = 1
             return "inflicted burnout, preventing attacks for 2 turns!"
         end
     },
@@ -194,7 +194,7 @@ skills.enemySkills = {
     ["Emergency Meeting"] = {
         name = "Emergency Meeting",
         type = "heal",
-        cooldown = 3,
+        cooldown = 3, -- Cooldown doesn't work.
         action = function(attacker, target)
             local heal = math.random(5, 10)
             attacker.hp = math.min(attacker.hp + heal, attacker.maxHp)

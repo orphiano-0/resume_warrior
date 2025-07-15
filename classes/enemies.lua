@@ -4,7 +4,7 @@ local enemies = {
         name = "Intern Swarm",
         hp = 15,
         maxHp = 15,
-        skills = { skills.enemySkills["Paperwork Pile"], skills.enemySkills["Coffee Sabotage"] }
+        skills = { skills.enemySkills["Paperwork Pile"] }
     },
     ["hrKaren"] = {
         name = "Karen of HR",
