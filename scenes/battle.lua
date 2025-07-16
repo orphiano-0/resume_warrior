@@ -3,158 +3,87 @@ local dialogueBox = require("classes.dialoguebox")
 local enemies = require("classes.enemies")
 local gameState = require("gameState")
 
-local battle = {}
+local playerManager = require("systems.playerManager")
+local uiRenderer = require("systems.uiRenderer")
+local audioManager = require("systems.audioManager")
 
-local attackSound = love.audio.newSource("assets/sounds/attack.mp3", "static")
-local healSound = love.audio.newSource("assets/sounds/heal.mp3", "static")
+local battle = {}
 
 function battle:load(enemyQueue)
     print("🧠 Loading battle with enemyQueue:", table.concat(enemyQueue or {}, ", "), "Stage:",
         gameState.currentStage or "unknown")
+
     self.enemyQueue = type(enemyQueue) == "table" and enemyQueue or { enemyQueue }
     self.currentEnemyIndex = 1
-    self.battleOver = false
-    self.victoryAcknowledged = false
-    self.playerDefeated = false
-    self.postBattleTimer = 0
-    self.stageCleared = false
+    self.battleOver, self.victoryAcknowledged, self.playerDefeated = false, false, false
+    self.postBattleTimer, self.stageCleared = 0, false
 
     self.bg = love.graphics.newImage("assets/images/background/bright_background.png")
     self.playerImage = love.graphics.newImage("assets/images/characters/player_1.png")
     self.pixelFont = love.graphics.newFont("assets/fonts/pixel.ttf", 12)
 
-    local defaultPlayer = {
-        name = "You",
-        hp = 50,
-        maxHp = 50,
-        level = 1,
-        xp = 0,
-        xpToNext = 3,
-        selectedSkill = 1,
-        buffs = { damageBoost = 0, turnsRemaining = 0 },
-        statusEffects = { burnout = 0, overworked = 0, selfdoubt = 0 },
-        skills = {
-            skills.playerSkills["Excel Slam"],
-            skills.playerSkills["Buzzword Barrage"],
-            skills.playerSkills["Coffee Break"],
-            skills.playerSkills["LinkedIn Flex"]
-        }
-    }
-
-    self.player = gameState.playerData or {}
-    for k, v in pairs(defaultPlayer) do
-        if self.player[k] == nil then
-            self.player[k] = v
-        end
-    end
-
-    self.player.statusEffects = self.player.statusEffects or { burnout = 0, overworked = 0, selfdoubt = 0 }
-
-    if self.player.stats then
-        local stats = self.player.stats
-        self.player.hp = self.player.hp or (stats.experience * 5 + stats.intelligence * 2 + 20)
-        self.player.maxHp = self.player.maxHp or self.player.hp
-        self.player.name = self.player.career or self.player.name or "You"
-        if not self.player.skills or #self.player.skills == 0 then
-            local career = self.player.career or "Tech Bro"
-            if career == "Tech Bro" then
-                self.player.skills = {
-                    skills.playerSkills["Excel Slam"],
-                    skills.playerSkills["Buzzword Barrage"],
-                    skills.playerSkills["Coffee Break"]
-                }
-            elseif career == "Marketing Diva" then
-                self.player.skills = {
-                    skills.playerSkills["Buzzword Barrage"],
-                    skills.playerSkills["LinkedIn Flex"],
-                    skills.playerSkills["Coffee Break"]
-                }
-            elseif career == "Freelance Wizard" then
-                self.player.skills = {
-                    skills.playerSkills["Excel Slam"],
-                    skills.playerSkills["Coffee Break"],
-                    skills.playerSkills["LinkedIn Flex"]
-                }
-            end
-        end
-    end
-
-    self.player.hp = tonumber(self.player.hp) or 40
-    self.player.maxHp = tonumber(self.player.maxHp) or 40
-    self.player.level = tonumber(self.player.level) or 1
-    self.player.xp = tonumber(self.player.xp) or 0
-    self.player.xpToNext = tonumber(self.player.xpToNext) or 3
-    self.player.selectedSkill = tonumber(self.player.selectedSkill) or 1
+    self.player = gameState.playerData or playerManager.getDefaultPlayer()
+    self:initializePlayer()
 
     self.floatingText = {}
     self:loadEnemy()
+end
+
+function battle:initializePlayer()
+    local p = self.player
+    local stats = p.stats
+
+    p.statusEffects = p.statusEffects or { burnout = 0, overworked = 0, selfdoubt = 0 }
+
+    if stats then
+        p.hp = p.hp or (stats.experience * 5 + stats.intelligence * 2 + 20)
+        p.maxHp = p.maxHp or p.hp
+        p.name = p.career or p.name or "You"
+        if not p.skills or #p.skills == 0 then
+            playerManager.setCareerSkills(p)
+        end
+    end
+
+    p.hp = tonumber(p.hp) or 40
+    p.maxHp = tonumber(p.maxHp) or 40
+    p.level = tonumber(p.level) or 1
+    p.xp = tonumber(p.xp) or 0
+    p.xpToNext = tonumber(p.xpToNext) or 3
+    p.selectedSkill = tonumber(p.selectedSkill) or 1
 end
 
 function battle:loadEnemy()
     local name = self.enemyQueue[self.currentEnemyIndex]
     print("🧠 Loading enemy:", name, "Index:", self.currentEnemyIndex, "Stage:", gameState.currentStage or "unknown")
 
-    self.enemy = enemies[name]
-    if not self.enemy then
+    local enemyData = enemies[name]
+    if not enemyData then
         print("❌ Error: Enemy not found for key: " .. tostring(name))
-        self.enemy = {
-            name = "Unknown Enemy",
-            hp = 20,
-            maxHp = 20,
-            skills = { skills.playerSkills["Excel Slam"] }
-        }
-    else
-        self.enemy = {
-            name = self.enemy.name,
-            hp = self.enemy.maxHp,
-            maxHp = self.enemy.maxHp,
-            skills = self.enemy.skills
-        }
+        enemyData = { name = "Unknown Enemy", maxHp = 20, skills = { skills.playerSkills["Excel Slam"] } }
+    elseif not enemyData.skills or #enemyData.skills == 0 then
+        print("⚠️ Warning: Enemy has no valid skills, assigning fallback")
+        enemyData.skills = { skills.playerSkills["Excel Slam"] }
     end
 
-    if not self.enemy.skills or #self.enemy.skills == 0 then
-        print("⚠️ Warning: Enemy " .. tostring(name) .. " has no valid skills, assigning fallback")
-        self.enemy.skills = { skills.playerSkills["Excel Slam"] }
-    end
+    self.enemy = {
+        name = enemyData.name,
+        hp = tonumber(enemyData.maxHp),
+        maxHp = tonumber(enemyData.maxHp),
+        skills = enemyData.skills
+    }
 
-    self.enemy.hp = tonumber(self.enemy.hp) or self.enemy.maxHp or 20
-    self.enemy.maxHp = tonumber(self.enemy.maxHp) or 20
     self.enemyName = tostring(name)
-
-    local imagePath = "assets/images/characters/" .. string.lower(tostring(name)) .. ".png"
-    if love.filesystem.getInfo(imagePath) then
-        self.enemyImage = love.graphics.newImage(imagePath)
-    else
-        print("⚠️ Warning: Enemy image not found at path:", imagePath)
-        self.enemyImage = love.graphics.newImage("assets/images/characters/default_enemy.png")
-    end
+    local imagePath = "assets/images/characters/" .. string.lower(name) .. ".png"
+    self.enemyImage = love.filesystem.getInfo(imagePath) and love.graphics.newImage(imagePath)
+        or love.graphics.newImage("assets/images/characters/default_enemy.png")
 
     self.turn = "player"
     self.message = "Battle started against " .. (self.enemy.name or "Unknown Enemy") .. "!"
-    print("🧠 Enemy HP:", self.enemy.hp, "Max HP:", self.enemy.maxHp)
 end
 
 function battle:resetGame()
     print("🧠 Resetting game due to player defeat")
-    gameState.playerData = {
-        name = "You",
-        hp = 40,
-        maxHp = 40,
-        level = 1,
-        xp = 0,
-        xpToNext = 3,
-        selectedSkill = 1,
-        buffs = { damageBoost = 0, turnsRemaining = 0 },
-        statusEffects = { burnout = 0, overworked = 0, selfdoubt = 0 },
-        skills = {
-            skills.playerSkills["Excel Slam"],
-            skills.playerSkills["Buzzword Barrage"],
-            skills.playerSkills["Coffee Break"],
-            skills.playerSkills["LinkedIn Flex"]
-        },
-        stats = nil,
-        career = nil
-    }
+    gameState.playerData = playerManager.getDefaultPlayer()
     gameState.currentStage = 1
     gameState:switch("menu")
 end
@@ -186,10 +115,10 @@ function battle:draw()
     love.graphics.draw(self.playerImage, playerX, playerY, 0, scale, scale)
     love.graphics.draw(self.enemyImage, enemyX, enemyY, 0, scale, scale)
 
-    self:drawHealthBar(playerX, playerY - 16, self.playerImage:getWidth() * scale, 10, self.player.hp, self.player.maxHp,
-        { 0, 0.8, 0.2 })
-    self:drawHealthBar(enemyX, enemyY - 16, self.enemyImage:getWidth() * scale, 10, self.enemy.hp, self.enemy.maxHp,
-        { 0.8, 0.1, 0.1 })
+    uiRenderer.drawHealthBar(playerX, playerY - 16, self.playerImage:getWidth() * scale, 10, self.player.hp,
+        self.player.maxHp, { 0, 0.8, 0.2 })
+    uiRenderer.drawHealthBar(enemyX, enemyY - 16, self.enemyImage:getWidth() * scale, 10, self.enemy.hp, self.enemy
+        .maxHp, { 0.8, 0.1, 0.1 })
 
     local dialogX, dialogY, dialogW = 15, 15, w / 2 - 30
     local _, wrappedText = love.graphics.getFont():getWrap(self.message, dialogW - 20)
@@ -238,9 +167,9 @@ function battle:draw()
         end
     elseif self.battleOver then
         love.graphics.setColor(1, 1, 1)
-        local text = self.playerDefeated and "Game Over! Press [Enter] to restart" or
-            (self.stageCleared and "Stage cleared! Press [Enter] to return to map" or
-                "Press [Enter] to face the next enemy")
+        local text = self.playerDefeated and "Game Over! Press [Enter] to restart"
+            or (self.stageCleared and "Stage cleared! Press [Enter] to return to map"
+                or "Press [Enter] to face the next enemy")
         love.graphics.printf(text, w / 2, h - 50, w / 2 - 40, "center")
     end
 
@@ -295,11 +224,11 @@ function battle:keypressed(key)
             self.message = "You " .. result
 
             if damage > 0 then
-                attackSound:play()
+                audioManager.play("attack")
                 table.insert(self.floatingText,
                     { text = "-" .. damage, x = love.graphics.getWidth() - 140, y = 80, timer = 1.2 })
             elseif skill.type == "heal" then
-                healSound:play()
+                audioManager.play("heal")
             end
 
             if skill.cooldown then
@@ -373,7 +302,6 @@ function battle:enemyTurn()
     local result = skill.action(self.enemy, self.player)
     local damage = math.max(hpBefore - self.player.hp, 0)
 
-    -- Get enemy dialogue line from dialogueBox
     local skillName = skill.name
     local lines = dialogueBox.enemyDialogue[skillName]
     if lines and #lines > 0 then
@@ -383,7 +311,7 @@ function battle:enemyTurn()
     end
 
     if damage > 0 then
-        attackSound:play()
+        audioManager.play("attack")
         table.insert(self.floatingText, {
             text = "-" .. damage,
             x = 80,
@@ -413,27 +341,12 @@ function battle:updateCooldowns()
 end
 
 function battle:updateBuffs()
-    if self.player.buffs.turnsRemaining > 0 then
+    if self.player.buffs and self.player.buffs.turnsRemaining > 0 then
         self.player.buffs.turnsRemaining = self.player.buffs.turnsRemaining - 1
         if self.player.buffs.turnsRemaining == 0 then
             self.player.buffs.damageBoost = 0
         end
     end
-end
-
-function battle:drawHealthBar(x, y, width, height, current, max, color)
-    current = tonumber(current) or 0
-    max = tonumber(max) or 1
-    local ratio = math.max(current / max, 0)
-    if ratio > 1 then
-        ratio = 1
-    end
-    love.graphics.setColor(0.2, 0.2, 0.2)
-    love.graphics.rectangle("fill", x, y, width, height)
-    love.graphics.setColor(color)
-    love.graphics.rectangle("fill", x, y, width * ratio, height)
-    love.graphics.setColor(1, 1, 1)
-    love.graphics.rectangle("line", x, y, width, height)
 end
 
 function battle:winBattle()
@@ -458,7 +371,6 @@ function battle:winBattle()
     end
 
     self.player.statusEffects = self.player.statusEffects or { burnout = 0, overworked = 0, selfdoubt = 0 }
-    -- self.player.hp = math.min(self.player.hp + 5, self.player.maxHp) -- Optional healing
     gameState.playerData = self.player
 
     if self.currentEnemyIndex < #self.enemyQueue then
@@ -481,7 +393,10 @@ function battle:unlockSkillsByLevel(level)
             local skill = ps[name]
             if skill then
                 table.insert(self.player.skills, skill)
+                print("✅ Unlocked skill:", name)
                 return name
+            else
+                print("❌ Skill not found in playerSkills:", name)
             end
         end
     end
