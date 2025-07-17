@@ -221,7 +221,14 @@ function battle:keypressed(key)
             local hpBefore = self.enemy.hp
             local result = skill.action(self.player, self.enemy)
             local damage = math.max(hpBefore - self.enemy.hp, 0)
-            self.message = "You " .. result
+
+            local skillName = skill.name
+            local lines = dialogueBox.playerDialogue[skillName]
+            if lines and #lines > 0 then
+                self.message = lines[math.random(#lines)]
+            else
+                self.message = "You " .. result
+            end
 
             if damage > 0 then
                 audioManager.play("attack")
