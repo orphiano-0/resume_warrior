@@ -34,13 +34,13 @@ local enemies = {
         name = "Self-Doubt Specter",
         hp = 70,
         maxHp = 70,
-        skills = { skills.enemySkills["Coffee Sabotage"], skills.enemySkills["Burnout"], skills.enemySkills["Emergency Meeting"] }
+        skills = { skills.enemySkills["Paperwork Pile"], skills.enemySkills["Burnout"], skills.enemySkills["Emergency Meeting"] }
     },
     ["gaslightGhoul"] = {
         name = "Gaslight Ghoul",
         hp = 80,
         maxHp = 80,
-        skills = { skills.enemySkills["Paperwork Pile"], skills.enemySkills["Coffee Sabotage"], skills.enemySkills["Team Reorg"] }
+        skills = { skills.enemySkills["Paperwork Pile"], skills.enemySkills["Burnout"], skills.enemySkills["Team Reorg"] }
     },
     ["hrReaper"] = {
         name = "HR Reaper",
@@ -58,7 +58,7 @@ local enemies = {
         name = "CEO of Chaos",
         hp = 100,
         maxHp = 100,
-        skills = { skills.enemySkills["Micromanage"], skills.enemySkills["Corporate Rant"], skills.enemySkills["Overtime"] }
+        skills = { skills.enemySkills["Micromanage"], skills.enemySkills["Corporate Rant"], skills.enemySkills["Overtime"], skills.enemySkills["Coffee Sabotage"] }
     }
 }
 
