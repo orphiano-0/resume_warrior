@@ -18,7 +18,17 @@ function battle:load(enemyQueue)
     self.battleOver, self.victoryAcknowledged, self.playerDefeated = false, false, false
     self.postBattleTimer, self.stageCleared = 0, false
 
-    self.bg = love.graphics.newImage("assets/images/background/bright_background.png")
+    local stageBackgrounds = {
+        [1] = "bright_background.png",
+        [2] = "dark_background.png",
+        [3] = "dark_background.png",
+        [4] = "dark_background.png",
+        [5] = "boss.png",
+    }
+    local stage = gameState.currentStage or 1
+    local bgFile = stageBackgrounds[stage] or "bright_background.png"
+    self.bg = love.graphics.newImage("assets/images/background/" .. bgFile)
+
     self.playerImage = love.graphics.newImage("assets/images/characters/player_1.png")
     self.pixelFont = love.graphics.newFont("assets/fonts/pixel.ttf", 12)
 
