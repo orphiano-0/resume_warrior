@@ -2,6 +2,7 @@ local skills = require("classes.skills")
 local dialogueBox = require("classes.dialoguebox")
 local enemies = require("classes.enemies")
 local gameState = require("gameState")
+local Gear = require("classes.gear")
 
 local playerManager = require("systems.playerManager")
 local uiRenderer = require("systems.uiRenderer")
@@ -44,6 +45,8 @@ function battle:initializePlayer()
     local stats = p.stats
 
     p.statusEffects = p.statusEffects or { burnout = 0, overworked = 0, selfdoubt = 0 }
+    p.buffs = p.buffs or { damageBoost = 0, turnsRemaining = 0 }
+    p.gear = p.gear or {}
 
     if stats then
         p.hp = p.hp or (stats.experience * 5 + stats.intelligence * 2 + 20)
@@ -59,7 +62,13 @@ function battle:initializePlayer()
     p.level = tonumber(p.level) or 1
     p.xp = tonumber(p.xp) or 0
     p.xpToNext = tonumber(p.xpToNext) or 3
+    p.currency = tonumber(p.currency) or 0
     p.selectedSkill = tonumber(p.selectedSkill) or 1
+
+    -- Apply gear effects
+    for _, gear in ipairs(p.gear) do
+        gear:applyEffect(p)
+    end
 end
 
 function battle:loadEnemy()
@@ -109,6 +118,15 @@ function battle:update(dt)
     if self.battleOver and self.postBattleTimer > 0 then
         self.postBattleTimer = self.postBattleTimer - dt
     end
+
+    -- Apply HP regeneration from gear
+    for _, gear in ipairs(self.player.gear) do
+        if gear.effect.hpRegen and self.turn == "player" and not self.battleOver then
+            self.player.hp = math.min(self.player.hp + gear.effect.hpRegen, self.player.maxHp)
+            table.insert(self.floatingText,
+                { text = "+" .. gear.effect.hpRegen .. " HP", x = 80, y = love.graphics.getHeight() - 160, timer = 1.2 })
+        end
+    end
 end
 
 function battle:draw()
@@ -127,8 +145,8 @@ function battle:draw()
 
     uiRenderer.drawHealthBar(playerX, playerY - 16, self.playerImage:getWidth() * scale, 10, self.player.hp,
         self.player.maxHp, { 0, 0.8, 0.2 })
-    uiRenderer.drawHealthBar(enemyX, enemyY - 16, self.enemyImage:getWidth() * scale, 10, self.enemy.hp, self.enemy
-        .maxHp, { 0.8, 0.1, 0.1 })
+    uiRenderer.drawHealthBar(enemyX, enemyY - 16, self.enemyImage:getWidth() * scale, 10, self.enemy.hp,
+        self.enemy.maxHp, { 0.8, 0.1, 0.1 })
 
     local dialogX, dialogY, dialogW = 15, 15, w / 2 - 30
     local _, wrappedText = love.graphics.getFont():getWrap(self.message, dialogW - 20)
@@ -143,15 +161,16 @@ function battle:draw()
 
     local statsY = dialogY + dialogH + 10
     love.graphics.setColor(0, 0, 0, 0.6)
-    love.graphics.rectangle("fill", dialogX, statsY, dialogW, 60)
+    love.graphics.rectangle("fill", dialogX, statsY, dialogW, 80) -- Increased for gear
     love.graphics.setColor(1, 1, 1)
-    love.graphics.rectangle("line", dialogX, statsY, dialogW, 60)
+    love.graphics.rectangle("line", dialogX, statsY, dialogW, 80)
     love.graphics.printf("Player: " .. self.player.name .. " (Lvl " .. self.player.level .. ")", dialogX + 10,
         statsY + 10, dialogW - 20, "left")
     love.graphics.printf(
         "HP: " ..
         self.player.hp .. "/" .. self.player.maxHp .. "   XP: " .. self.player.xp .. "/" .. self.player.xpToNext,
         dialogX + 10, statsY + 30, dialogW - 20, "left")
+    love.graphics.printf("Beans: " .. self.player.currency, dialogX + 10, statsY + 50, dialogW - 20, "left")
 
     if not self.battleOver and self.turn == "player" then
         local skillX = w / 2 + 50
@@ -167,7 +186,9 @@ function battle:draw()
             local y = skillY + 30 + i * 25
             local selected = (i == self.player.selectedSkill)
             love.graphics.setColor(selected and { 0.4, 0.8, 1 } or { 1, 1, 1 })
-            love.graphics.printf((selected and "➤ " or "") .. skill.name, skillX + 20, y, skillW - 40, "left")
+            local levelText = skill.upgrade and " (Lvl " .. skill.upgrade.level .. ")" or ""
+            love.graphics.printf((selected and "➤ " or "") .. skill.name .. levelText, skillX + 20, y, skillW - 40,
+                "left")
             if skill.cooldown and skill.currentCooldown and skill.currentCooldown > 0 then
                 local r = 10
                 local percent = skill.currentCooldown / skill.cooldown
@@ -362,14 +383,21 @@ function battle:updateBuffs()
         self.player.buffs.turnsRemaining = self.player.buffs.turnsRemaining - 1
         if self.player.buffs.turnsRemaining == 0 then
             self.player.buffs.damageBoost = 0
+            -- Reapply gear-based damage boosts
+            for _, gear in ipairs(self.player.gear) do
+                if gear.effect.damageBoost then
+                    self.player.buffs.damageBoost = self.player.buffs.damageBoost + gear.effect.damageBoost
+                end
+            end
         end
     end
 end
 
 function battle:winBattle()
     self.enemy.hp = 0
-    self.message = "You defeated " .. (self.enemy.name or "Unknown Enemy") .. "! +5 XP"
+    self.message = "You defeated " .. (self.enemy.name or "Unknown Enemy") .. "! +5 XP, +5 Beans"
     self.player.xp = self.player.xp + 5
+    self.player.currency = self.player.currency + 5
     self.battleOver = true
     self.victoryAcknowledged = false
     self.playerDefeated = false
