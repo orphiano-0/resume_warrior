@@ -6,6 +6,8 @@ local resumeCreation = require("scenes.resume_creation")
 local mapScene = require("scenes.map")
 
 local current = "title"
+local saveFileName = "savegame.lua"
+
 local states = {
     title = nil, -- Will be loaded dynamically
     menu = menu,
@@ -15,10 +17,66 @@ local states = {
     shop = shopScene
 }
 
-function gameState:load(...)
-    if not self.currentStage then
-        self.currentStage = 1
+-- 🔧 Table serialization helper
+function table.serialize(tbl)
+    local function serialize(o)
+        if type(o) == "number" then
+            return tostring(o)
+        elseif type(o) == "string" then
+            return string.format("%q", o)
+        elseif type(o) == "boolean" then
+            return tostring(o)
+        elseif type(o) == "table" then
+            local s = "{"
+            for k, v in pairs(o) do
+                s = s .. "[" .. serialize(k) .. "]=" .. serialize(v) .. ","
+            end
+            return s .. "}"
+        else
+            return "\"[unserializable datatype:" .. type(o) .. "]\""
+        end
     end
+    return serialize(tbl)
+end
+
+function gameState:save()
+    local data = {
+        currentStage = self.currentStage,
+        playerData = self.playerData
+    }
+    local serialized = "return " .. table.serialize(data)
+    local success, message = love.filesystem.write(saveFileName, serialized)
+    if success then
+        print("💾 Game saved successfully.")
+    else
+        print("❌ Failed to save game:", message)
+    end
+end
+
+function gameState:loadSave()
+    if love.filesystem.getInfo(saveFileName) then
+        local chunk = love.filesystem.load(saveFileName)
+        local data = chunk()
+        self.currentStage = data.currentStage or 1
+        self.playerData = data.playerData or nil
+        print("✅ Save file loaded.")
+    else
+        print("ℹ️ No save file found. Starting new game.")
+        self.currentStage = 1
+        self.playerData = nil
+    end
+end
+
+function gameState:newGame()
+    self.currentStage = 1
+    self.playerData = nil
+    love.filesystem.remove(saveFileName)
+    print("🆕 New game started.")
+end
+
+function gameState:load(...)
+    self:loadSave()
+
     print("🧠 gameState:load, currentStage:", self.currentStage, "scene:", current)
 
     -- Dynamically load title scene to avoid circular dependency
@@ -29,7 +87,7 @@ function gameState:load(...)
             states.title = titleScene
         else
             print("❌ Error: Failed to load title scene or title scene is not a table:", titleScene)
-            states.title = { -- Fallback empty scene
+            states.title = {
                 load = function() end,
                 draw = function()
                     love.graphics.printf("Error: Title scene failed to load", 0, 100, love.graphics.getWidth(), "center")
@@ -74,8 +132,8 @@ end
 
 function gameState:switch(newState, ...)
     print("🧠 gameState:switch, newState:", newState, "currentStage:", self.currentStage)
+
     if newState == "title" and not states.title then
-        print("🧠 Loading title scene in switch")
         local success, titleScene = pcall(require, "scenes.title")
         if success and type(titleScene) == "table" then
             states.title = titleScene
@@ -86,7 +144,6 @@ function gameState:switch(newState, ...)
     end
 
     if newState == "battle" and not states.battle then
-        print("🧠 Loading battle scene in switch")
         local success, battleScene = pcall(require, "scenes.battle")
         if success and type(battleScene) == "table" then
             states.battle = battleScene
@@ -130,6 +187,10 @@ function gameState:draw()
 end
 
 function gameState:keypressed(key)
+    if key == "f5" then self:save() end
+    if key == "f6" then self:loadSave() end
+    if key == "f7" then self:newGame() end
+
     if type(states[current]) == "table" and states[current].keypressed then
         states[current]:keypressed(key)
     end

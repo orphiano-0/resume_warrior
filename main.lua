@@ -49,3 +49,7 @@ end
 function love.mousepressed(x, y, button)
     gameState:mousepressed(x, y, button)
 end
+
+function love.quit()
+    gameState:save()
+end
