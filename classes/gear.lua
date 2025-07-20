@@ -1,5 +1,5 @@
 local gear = {}
-gear.methods = {} -- 👈 holds methods for all gear items
+gear.methods = {}
 
 local gearData = {
     ["Coffee Mug"] = {
