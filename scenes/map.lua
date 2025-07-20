@@ -58,16 +58,21 @@ function map:keypressed(key)
     elseif key == "return" then
         if self.selection == 1 then
             local enemyList = ({
-                [1] = { "internSwarm", "hrKaren" },
-                [2] = { "micromanageDragon" },
-                [3] = { "deadlineDemon" },
-                [4] = { "overtimeOgre" },
-                [5] = { "selfdoubtSpecter" },
-                [6] = { "gaslightGhoul" },
-                [7] = { "hrReaper" },
-                [8] = { "ceoOfDoom" },
-                [9] = { "ceoOfChaos" }
-            })[self.stage] or { "internSwarm" }
+                [1] = { "internSwarm", "coffeeGremlin" },
+                [2] = { "printerPoltergeist", "coffeeGremlin", "toxicTeammate" },
+                [3] = { "slackerZombie", "coffeeGremlin" },
+                [4] = { "micromanageDragon", "meetingMummy" },
+                [5] = { "meetingMummy", "deadlineDemon" },
+                [6] = { "itGremlin", "budgetBanshee" },
+                [7] = { "policyPhantom", "overtimeOgre" },
+                [8] = { "calendarWitch", "overtimeOgre" },
+                [9] = { "gaslightGhoul", "policyPhantom" },
+                [10] = { "burnoutBot", "coffeeGremlin", "micromanageDragon" },
+                [11] = { "middleManagerMinotaur", "slackerZombie", "slackerZombie", "slackerZombie" },
+                [12] = { "hrReaper", "toxicTeammate" },
+                [13] = { "feedbackFiend", "meetingMummy" },
+                [14] = { "meetingMummy", "toxicTeammate", "hrReaper", "middleManagerMinotaur", "ceoOfDoom" }
+            })[self.stage] or { "ceoOfDoom" }
 
             print("🧠 Starting battle for stage", self.stage, "with enemies:", table.concat(enemyList, ", "))
             gameState.currentStage = self.stage + 1

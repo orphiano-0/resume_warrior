@@ -30,7 +30,7 @@ function battle:load(enemyQueue)
     local bgFile = stageBackgrounds[stage] or "bright_background.png"
     self.bg = love.graphics.newImage("assets/images/background/" .. bgFile)
 
-    self.playerImage = love.graphics.newImage("assets/images/characters/player_1.png")
+    self.playerImage = love.graphics.newImage("assets/images/characters/player/player_1.png")
     self.pixelFont = love.graphics.newFont("assets/fonts/pixel.ttf", 12)
 
     self.player = gameState.player or playerManager.getDefaultPlayer()
@@ -92,9 +92,9 @@ function battle:loadEnemy()
     }
 
     self.enemyName = tostring(name)
-    local imagePath = "assets/images/characters/" .. string.lower(name) .. ".png"
+    local imagePath = "assets/images/characters/enemies/" .. string.lower(name) .. ".png"
     self.enemyImage = love.filesystem.getInfo(imagePath) and love.graphics.newImage(imagePath)
-        or love.graphics.newImage("assets/images/characters/default_enemy.png")
+        or love.graphics.newImage("assets/images/characters/enemies/selfdoubtSpecter.png")
 
     self.turn = "player"
     self.message = "Battle started against " .. (self.enemy.name or "Unknown Enemy") .. "!"
