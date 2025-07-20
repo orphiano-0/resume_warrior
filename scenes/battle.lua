@@ -33,7 +33,7 @@ function battle:load(enemyQueue)
     self.playerImage = love.graphics.newImage("assets/images/characters/player_1.png")
     self.pixelFont = love.graphics.newFont("assets/fonts/pixel.ttf", 12)
 
-    self.player = gameState.playerData or playerManager.getDefaultPlayer()
+    self.player = gameState.player or playerManager.getDefaultPlayer()
     self:initializePlayer()
 
     self.floatingText = {}
@@ -102,7 +102,7 @@ end
 
 function battle:resetGame()
     print("🧠 Resetting game due to player defeat")
-    gameState.playerData = playerManager.getDefaultPlayer()
+    gameState.player = playerManager.getDefaultPlayer()
     gameState.currentStage = 1
     gameState:switch("menu")
 end
@@ -416,7 +416,7 @@ function battle:winBattle()
     end
 
     self.player.statusEffects = self.player.statusEffects or { burnout = 0, overworked = 0, selfdoubt = 0 }
-    gameState.playerData = self.player
+    gameState.player = self.player
 
     if self.currentEnemyIndex < #self.enemyQueue then
         self.message = self.message .. "\nGet ready for the next enemy!"
