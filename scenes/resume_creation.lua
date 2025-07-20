@@ -62,10 +62,10 @@ function resume:keypressed(key)
         end
     elseif key == "return" and self.points == 0 then
         print("🧠 Resume: Creating player with career", self.career)
+        local gameState = require("gameState")
         local playerData = player.create(self.career, self.stats)
-        if self.onComplete then
-            self.onComplete(playerData)
-        end
+        gameState.player = playerData
+        gameState:switch("map") -- move to map after creation
     end
 end
 

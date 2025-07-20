@@ -10,7 +10,7 @@ function menu:load()
     -- Options: label, tag, and disabled flag
     self.options = {
         { label = "Start",    tag = "resume_creation", disabled = false },
-        { label = "Continue", tag = "resume",          disabled = not lovefs.getInfo("save.dat") },
+        { label = "Continue", tag = "resume",          disabled = not lovefs.getInfo("savegame.lua") },
         { label = "Quit",     tag = "quit",            disabled = false }
     }
 
@@ -37,7 +37,7 @@ function menu:draw()
     love.graphics.setColor(0, 0, 0, 0.7)
     love.graphics.rectangle("fill", 0, h / 4 - 30, w, 60)
     love.graphics.setColor(1, 1, 1)
-    love.graphics.printf("Welcome to the Game!", 0, h / 4 - 10, w, "center")
+    love.graphics.printf("Welcome to the Game, Employee!", 0, h / 4 - 10, w, "center")
 
     -- Menu Options
     for i, option in ipairs(self.options) do
@@ -73,11 +73,12 @@ function menu:keypressed(key)
         if not gameState then gameState = require("gameState") end
 
         if selectedOption.tag == "resume_creation" then
-            print("🎯 Starting new resume creation")
+            print("🎯 Starting new game")
+            gameState:newGame()
             gameState:switch("resume")
         elseif selectedOption.tag == "resume" then
             print("🔄 Continuing previous stage")
-            gameState:switch("resume")
+            gameState:switch("map")
         elseif selectedOption.tag == "quit" then
             print("👋 Quitting game")
             love.event.quit()

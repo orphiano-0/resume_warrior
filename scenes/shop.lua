@@ -5,7 +5,7 @@ local gear = require("classes.gear")
 local showPopup = false
 local popupMessage = ""
 local popupTimer = 0
-local popupDuration = 2 -- seconds
+local popupDuration = 2
 
 local purchaseSound
 local errorSound
@@ -69,7 +69,7 @@ function shop:draw()
     local y = 40
     local centerX = w / 2
 
-    local title = "☕ Coffee Shop - Beans: " .. (gameState.playerData and gameState.playerData.currency or 0)
+    local title = "☕ Coffee Shop - Beans: " .. (gameState.player and gameState.player.currency or 0)
     self:drawBox(title, centerX, y, { 0.2, 0.2, 0.2, 0.8 }, { 1, 1, 1 })
     y = y + 60
 
@@ -136,7 +136,7 @@ function shop:keypressed(key)
     elseif key == "down" then
         self.selected = self.selected % maxItems + 1
     elseif key == "return" then
-        local player = gameState.playerData
+        local player = gameState.player
         local item = self.itemIndexMap[self.selected]
 
         if not player or not item then

@@ -7,6 +7,9 @@ function map:load(stage)
     self.bg = love.graphics.newImage("assets/images/background/bright_background.png")
     self.font = love.graphics.newFont("assets/fonts/pixel.ttf", 12)
     self.selection = 1
+
+    -- Moved here so it can be accessed in both draw() and keypressed()
+    self.options = { "Office Battle", "Coffee Pantry", "View Stats" }
 end
 
 function map:draw()
@@ -14,7 +17,6 @@ function map:draw()
     love.graphics.draw(self.bg, 0, 0, 0, w / self.bg:getWidth(), h / self.bg:getHeight())
     love.graphics.setFont(self.font)
 
-    -- Helper
     local function drawPixelatedBox(text, y)
         local padding = 10
         local boxWidth = self.font:getWidth(text) + padding * 2
@@ -28,8 +30,7 @@ function map:draw()
 
     drawPixelatedBox("Stage " .. self.stage, 50)
 
-    local options = { "Office Battle", "Coffee Pantry", "Lobby Area" }
-    for i, option in ipairs(options) do
+    for i, option in ipairs(self.options) do
         local prefix = (i == self.selection) and "> " or "  "
         drawPixelatedBox(prefix .. option, 100 + i * 30)
     end
@@ -40,16 +41,20 @@ end
 function map:keypressed(key)
     if not gameState then
         local ok, gs = pcall(require, "gameState")
-        if ok then gameState = gs else
+        if ok then
+            gameState = gs
+        else
             print("❌ Failed to require gameState:", gs)
             return
         end
     end
 
+    local optionCount = #self.options
+
     if key == "up" then
-        self.selection = (self.selection - 2) % 2 + 1
+        self.selection = (self.selection - 2 + optionCount) % optionCount + 1
     elseif key == "down" then
-        self.selection = self.selection % 2 + 1
+        self.selection = self.selection % optionCount + 1
     elseif key == "return" then
         if self.selection == 1 then
             local enemyList = ({
@@ -70,6 +75,9 @@ function map:keypressed(key)
         elseif self.selection == 2 then
             print("🧠 Going to shop from map")
             gameState:switch("shop")
+        elseif self.selection == 3 then
+            print("📊 Viewing player stats")
+            gameState:switch("stats")
         end
     end
 end

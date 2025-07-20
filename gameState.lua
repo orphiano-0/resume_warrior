@@ -9,12 +9,13 @@ local current = "title"
 local saveFileName = "savegame.lua"
 
 local states = {
-    title = nil, -- Will be loaded dynamically
+    title = nil,
     menu = menu,
     resume = resumeCreation,
     map = mapScene,
     battle = nil,
-    shop = shopScene
+    shop = shopScene,
+    stats = require("scenes.stats")
 }
 
 -- 🔧 Table serialization helper
@@ -42,7 +43,7 @@ end
 function gameState:save()
     local data = {
         currentStage = self.currentStage,
-        playerData = self.playerData
+        player = self.player
     }
     local serialized = "return " .. table.serialize(data)
     local success, message = love.filesystem.write(saveFileName, serialized)
@@ -58,18 +59,18 @@ function gameState:loadSave()
         local chunk = love.filesystem.load(saveFileName)
         local data = chunk()
         self.currentStage = data.currentStage or 1
-        self.playerData = data.playerData or nil
+        self.player = data.player or nil
         print("✅ Save file loaded.")
     else
         print("ℹ️ No save file found. Starting new game.")
         self.currentStage = 1
-        self.playerData = nil
+        self.player = nil
     end
 end
 
 function gameState:newGame()
     self.currentStage = 1
-    self.playerData = nil
+    self.player = nil
     love.filesystem.remove(saveFileName)
     print("🆕 New game started.")
 end
@@ -158,6 +159,10 @@ function gameState:switch(newState, ...)
         return
     end
 
+    if newState == "map" or newState == "shop" then
+        self:save()
+    end
+
     current = newState
     if newState == "map" then
         states[current]:load(self.currentStage)
@@ -167,7 +172,8 @@ function gameState:switch(newState, ...)
 
     if newState == "resume" then
         states["resume"].onComplete = function(playerData)
-            self.playerData = playerData
+            self.player = playerData
+            self:save()
             self:switch("map")
         end
     end
