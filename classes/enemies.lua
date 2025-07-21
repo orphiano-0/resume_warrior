@@ -185,12 +185,15 @@ local enemies = {
     },
     ["ceoOfDoom"] = {
         name = "CEO of Doom",
-        hp = 300,
-        maxHp = 300,
+        hp = 400,
+        maxHp = 400,
         skills = {
             skills.enemySkills["Emergency Meeting"],
             skills.enemySkills["Team Reorg"],
-            skills.enemySkills["Metrics Mayhem"]
+            skills.enemySkills["Metrics Mayhem"],
+            skills.enemySkills["Coffee Sabotage"],
+            skills.enemySkills["Toxic Feedback"],
+            skills.enemySkills["Deadline Panic"]
         }
     }
 }

@@ -58,8 +58,8 @@ function map:keypressed(key)
     elseif key == "return" then
         if self.selection == 1 then
             local enemyList = ({
-                [1] = { "internSwarm", "coffeeGremlin" },
-                [2] = { "printerPoltergeist", "coffeeGremlin", "toxicTeammate" },
+                [1] = { "internSwarm", "toxicTeammate" },
+                [2] = { "printerPoltergeist", "toxicTeammate" },
                 [3] = { "slackerZombie", "coffeeGremlin" },
                 [4] = { "micromanageDragon", "meetingMummy" },
                 [5] = { "meetingMummy", "deadlineDemon" },
@@ -69,8 +69,8 @@ function map:keypressed(key)
                 [9] = { "gaslightGhoul", "policyPhantom" },
                 [10] = { "burnoutBot", "coffeeGremlin", "micromanageDragon" },
                 [11] = { "middleManagerMinotaur", "slackerZombie", "slackerZombie", "slackerZombie" },
-                [12] = { "hrReaper", "toxicTeammate" },
-                [13] = { "feedbackFiend", "meetingMummy" },
+                [12] = { "hrReaper", "toxicTeammate", "budgetBanshee", "budgetBanshee", "calendarWitch" },
+                [13] = { "feedbackFiend", "meetingMummy", "coffeeGremlin" },
                 [14] = { "meetingMummy", "toxicTeammate", "hrReaper", "middleManagerMinotaur", "ceoOfDoom" }
             })[self.stage] or { "ceoOfDoom" }
 
