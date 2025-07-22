@@ -26,7 +26,7 @@ function love.load()
         "background music")
     if bgMusic then
         bgMusic:setLooping(true)
-        bgMusic:setVolume(0.5)
+        bgMusic:setVolume(0.4)
         bgMusic:play()
         print("🎵 Background music started")
     end
